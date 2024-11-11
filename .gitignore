@@ -1,0 +1,10 @@
+.DS_Store
+# urlfinder binary when built with `go build`
+cmd/urlfinder/urlfinder
+# urlfinder binary when built with `make`
+urlfinder
+vendor/
+.idea
+.devcontainer
+.vscode
+dist

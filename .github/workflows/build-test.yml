@@ -1,0 +1,47 @@
+name: 🔨 Build Test
+
+on:
+  pull_request:
+    paths:
+      - '**.go'
+      - '**.mod'
+  workflow_dispatch:
+    inputs:
+      short:
+        description: 'Use -short flag for tests'
+        required: false
+        type: boolean
+        default: false
+
+jobs:  
+  build:
+    name: Test Builds
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22.x
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: go build .
+        working-directory: cmd/urlfinder/
+
+      # - name: Run tests
+      #   env:
+      #     URLSCAN_API_KEY: ${{secrets.URLSCAN_API_KEY}}
+      #   uses: nick-invision/retry@v2
+      #   with:
+      #     timeout_seconds: 360
+      #     max_attempts: 3
+      #     command: go test ./... -v ${{ github.event.inputs.short == 'true' && '-short' || '' }}
+
+      - name: Race Condition Tests
+        run: go build -race .
+        working-directory: cmd/urlfinder/
