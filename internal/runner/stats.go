@@ -30,13 +30,13 @@ func printStatistics(stats map[string]source.Statistics) {
 
 	if len(lines) > 0 {
 		gologger.Print().Msgf("\n Source               Duration      Results     Errors\n%s\n", strings.Repeat("─", 56))
-		gologger.Print().Msgf(strings.Join(lines, "\n"))
-		gologger.Print().Msgf("\n")
+		gologger.Print().Msg(strings.Join(lines, "\n"))
+		gologger.Print().Msg("\n")
 	}
 
 	if len(skipped) > 0 {
-		gologger.Print().Msgf("\n The following sources were included but skipped...\n\n")
-		gologger.Print().Msgf(strings.Join(skipped, "\n"))
-		gologger.Print().Msgf("\n\n")
+		gologger.Print().Msg("\n The following sources were included but skipped...\n\n")
+		gologger.Print().Msg(strings.Join(skipped, "\n"))
+		gologger.Print().Msg("\n\n")
 	}
 }
