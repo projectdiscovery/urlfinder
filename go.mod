@@ -11,7 +11,7 @@ require (
 	github.com/projectdiscovery/fdmax v0.0.4
 	github.com/projectdiscovery/goflags v0.1.65
 	github.com/projectdiscovery/gologger v1.1.32
-	github.com/projectdiscovery/ratelimit v0.0.26
+	github.com/projectdiscovery/ratelimit v0.0.62
 	github.com/projectdiscovery/utils v0.2.19
 	github.com/rs/xid v1.5.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
@@ -93,6 +93,7 @@ require (
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/term v0.24.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
