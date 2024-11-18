@@ -77,8 +77,8 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("source", "Source",
-		flagSet.StringSliceVarP(&options.Sources, "sources", "s", nil, "specific sources to use for discovery (-s censys,dnsrepo). Use -ls to display all available sources.", goflags.NormalizedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.ExcludeSources, "exclude-sources", "es", nil, "sources to exclude from enumeration (-es censys,dnsrepo)", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.Sources, "sources", "s", nil, "specific sources to use for discovery (-s alienvault,commoncrawl). Use -ls to display all available sources.", goflags.NormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.ExcludeSources, "exclude-sources", "es", nil, "sources to exclude from enumeration (-es alienvault,commoncrawl)", goflags.NormalizedStringSliceOptions),
 		flagSet.BoolVar(&options.All, "all", false, "use all sources for enumeration (slow)"),
 	)
 
