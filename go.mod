@@ -12,7 +12,7 @@ require (
 	github.com/projectdiscovery/goflags v0.1.65
 	github.com/projectdiscovery/gologger v1.1.32
 	github.com/projectdiscovery/ratelimit v0.0.26
-	github.com/projectdiscovery/utils v0.2.18
+	github.com/projectdiscovery/utils v0.2.19
 	github.com/rs/xid v1.5.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	gopkg.in/yaml.v3 v3.0.1
