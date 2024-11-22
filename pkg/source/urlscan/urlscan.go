@@ -89,8 +89,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			}
 
 			for _, url := range data.Results {
-				results <- source.Result{Source: s.Name(), Value: url.Page.Url, Reference: apiURL}
-				s.results++
+				for _, extractedURL := range sess.Extractor.Extract(url.Page.Url) {
+					results <- source.Result{Source: s.Name(), Value: extractedURL, Reference: apiURL}
+					s.results++
+				}
 			}
 			if len(data.Results) > 0 {
 				lastResult := data.Results[len(data.Results)-1]

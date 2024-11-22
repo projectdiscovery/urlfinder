@@ -61,19 +61,25 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		}
 
 		for _, detectedUrl := range data.DetectedUrls {
-			results <- source.Result{Source: s.Name(), Value: detectedUrl.URL}
-			s.results++
+			for _, extractedURL := range sess.Extractor.Extract(detectedUrl.URL) {
+				results <- source.Result{Source: s.Name(), Value: extractedURL}
+				s.results++
+			}
 		}
 		for _, subdomain := range data.Subdomains {
-			results <- source.Result{Source: s.Name(), Value: subdomain}
-			s.results++
+			for _, extractedURL := range sess.Extractor.Extract(subdomain) {
+				results <- source.Result{Source: s.Name(), Value: extractedURL}
+				s.results++
+			}
 		}
 
 		for _, undetectedUrl := range data.UndetectedUrls {
 			if len(undetectedUrl) > 0 {
 				if urlString, ok := undetectedUrl[0].(string); ok {
-					results <- source.Result{Source: s.Name(), Value: urlString}
-					s.results++
+					for _, extractedURL := range sess.Extractor.Extract(urlString) {
+						results <- source.Result{Source: s.Name(), Value: extractedURL}
+						s.results++
+					}
 				}
 			}
 		}

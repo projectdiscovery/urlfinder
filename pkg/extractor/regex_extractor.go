@@ -11,8 +11,9 @@ type RegexUrlExtractor struct {
 }
 
 // NewRegexUrlExtractor creates a new regular expression to extract urls
-func NewRegexUrlExtractor() (*RegexUrlExtractor, error) {
-	extractor, err := regexp.Compile(`(?:http|https)?://(?:www\.)?[a-zA-Z0-9./?=_%:-]*`)
+func NewRegexUrlExtractor(query string) (*RegexUrlExtractor, error) {
+	query = regexp.QuoteMeta(query)
+	extractor, err := regexp.Compile(`^(?:http://|https://)?(?:www\.)?(?:[a-zA-Z0-9-]+\.)*` + query + `(?:/.*)?$`)
 	if err != nil {
 		return nil, err
 	}

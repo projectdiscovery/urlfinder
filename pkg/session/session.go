@@ -75,7 +75,7 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 	session.MultiRateLimiter = multiRateLimiter
 
 	// Create a new extractor object for the current url
-	extractor, err := extractor.NewRegexUrlExtractor()
+	extractor, err := extractor.NewRegexUrlExtractor(query)
 	session.Extractor = extractor
 
 	return session, err
