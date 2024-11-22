@@ -63,7 +63,7 @@ func New(sourceNames, excludedSourceNames []string, useAllSources bool) *Agent {
 	gologger.Debug().Msg(fmt.Sprintf("Selected source(s) for this search: %s", strings.Join(maps.Keys(sources), ", ")))
 
 	for _, currentSource := range sources {
-		if warning, ok := sourceWarnings.Get(strings.ToLower(currentSource.Name())); ok {
+		if warning, ok := sourceWarnings.Get((currentSource.Name())); ok {
 			gologger.Warning().Msg(warning)
 		}
 	}
@@ -156,7 +156,7 @@ func (a *Agent) buildMultiRateLimiter(ctx context.Context, globalRateLimit int, 
 	var err error
 	for _, source := range a.sources {
 		var rl uint
-		if sourceRateLimit, ok := rateLimit.Custom.Get(strings.ToLower(source.Name())); ok {
+		if sourceRateLimit, ok := rateLimit.Custom.Get((source.Name())); ok {
 			rl = sourceRateLimitOrDefault(uint(globalRateLimit), sourceRateLimit)
 		}
 

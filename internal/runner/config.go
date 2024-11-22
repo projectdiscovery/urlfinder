@@ -2,7 +2,6 @@ package runner
 
 import (
 	"os"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -22,7 +21,7 @@ func createProviderConfigYAML(configFilePath string) error {
 	sourcesRequiringApiKeysMap := make(map[string][]string)
 	for _, source := range agent.AllSources {
 		if source.NeedsKey() {
-			sourceName := strings.ToLower(source.Name())
+			sourceName := source.Name()
 			sourcesRequiringApiKeysMap[sourceName] = []string{}
 		}
 	}
@@ -40,7 +39,7 @@ func UnmarshalFrom(file string) error {
 	sourceApiKeysMap := map[string][]string{}
 	err = yaml.NewDecoder(reader).Decode(sourceApiKeysMap)
 	for _, source := range agent.AllSources {
-		sourceName := strings.ToLower(source.Name())
+		sourceName := (source.Name())
 		apiKeys := sourceApiKeysMap[sourceName]
 		if source.NeedsKey() && apiKeys != nil && len(apiKeys) > 0 {
 			gologger.Debug().Msgf("API key(s) found for %s.", sourceName)

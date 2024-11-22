@@ -2,7 +2,6 @@ package extractor
 
 import (
 	"regexp"
-	"strings"
 )
 
 // RegexUrlExtractor is a concrete implementation of the RegexUrlExtractor interface, using regex for extraction.
@@ -23,7 +22,7 @@ func NewRegexUrlExtractor() (*RegexUrlExtractor, error) {
 func (re *RegexUrlExtractor) Extract(text string) []string {
 	matches := re.extractor.FindAllString(text, -1)
 	for i, match := range matches {
-		matches[i] = strings.ToLower(match)
+		matches[i] = (match)
 	}
 	return matches
 }
