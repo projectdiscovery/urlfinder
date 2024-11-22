@@ -48,6 +48,9 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 			case source.Error:
 				gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
 			case source.Url:
+				if result.Value == "" {
+					continue
+				}
 
 				url := replacer.Replace(result.Value)
 
