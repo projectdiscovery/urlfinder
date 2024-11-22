@@ -16,7 +16,7 @@ const banner = `
 const ToolName = `urlfinder`
 
 // Version is the current version of urlfinder
-const version = `v0.0.1`
+const version = `v0.0.2`
 
 // showBanner is used to show the banner to the user
 func showBanner() {
