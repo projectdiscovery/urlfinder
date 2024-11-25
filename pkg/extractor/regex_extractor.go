@@ -21,6 +21,5 @@ func NewRegexUrlExtractor() (*RegexUrlExtractor, error) {
 // Extract implements the UrlExtractor interface, using the regex to find urls in the given text.
 func (re *RegexUrlExtractor) Extract(text string) []string {
 	matches := re.extractor.FindAllString(text, -1)
-	// The copy step is unnecessary here; you can directly return matches
 	return matches
 }
