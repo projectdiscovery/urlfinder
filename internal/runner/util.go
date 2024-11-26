@@ -17,8 +17,3 @@ func sanitize(data string) (string, error) {
 	}
 	return data, nil
 }
-
-func normalizeLowercase(s string) (string, error) {
-	data, err := sanitize(s)
-	return strings.ToLower(data), err
-}

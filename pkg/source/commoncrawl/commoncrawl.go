@@ -140,7 +140,7 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 				line, _ = url.QueryUnescape(line)
 				for _, extractedURL := range sess.Extractor.Extract(line) {
 					// fix for triple encoded URL
-					extractedURL = strings.ToLower(extractedURL)
+					extractedURL = (extractedURL)
 					extractedURL = strings.TrimPrefix(extractedURL, "25")
 					extractedURL = strings.TrimPrefix(extractedURL, "2f")
 					if extractedURL != "" {

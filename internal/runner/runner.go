@@ -100,7 +100,7 @@ func (r *Runner) EnumerateMultipleUrls(reader io.Reader, writers []io.Writer) er
 func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Reader, writers []io.Writer) error {
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		url, err := normalizeLowercase(scanner.Text())
+		url, err := sanitize(scanner.Text())
 		if errors.Is(err, ErrEmptyInput) {
 			continue
 		}
