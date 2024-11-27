@@ -63,8 +63,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			resp.Body.Close()
 
 			for _, record := range response.URLList {
-				results <- source.Result{Source: s.Name(), Value: record.URL, Reference: apiURL}
-				s.results++
+				for _, extractedURL := range sess.Extractor.Extract(record.URL) {
+					results <- source.Result{Source: s.Name(), Value: extractedURL, Reference: apiURL}
+					s.results++
+				}
 			}
 
 			if !response.HasNext {

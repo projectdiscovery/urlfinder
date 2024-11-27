@@ -66,8 +66,8 @@ INPUT:
    -d, -list string[]  target domain or list of domains
 
 SOURCE:
-   -s, -sources string[]           specific sources for discovery (e.g., -s censys,dnsrepo)
-   -es, -exclude-sources string[]   sources to exclude (e.g., -es censys,dnsrepo)
+   -s, -sources string[]           specific sources for discovery (e.g., -s alienvault,commoncrawl)
+   -es, -exclude-sources string[]   sources to exclude (e.g., -es alienvault,commoncrawl)
    -all                             use all sources (may be slower)
 
 FILTER:

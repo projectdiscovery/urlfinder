@@ -49,7 +49,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			line, _ = url.QueryUnescape(line)
 			for _, extractedURL := range sess.Extractor.Extract(line) {
 				// fix for triple encoded URL
-				extractedURL = strings.ToLower(extractedURL)
+				extractedURL = (extractedURL)
 				extractedURL = strings.TrimPrefix(extractedURL, "25")
 				extractedURL = strings.TrimPrefix(extractedURL, "2f")
 
