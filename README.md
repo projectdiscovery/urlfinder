@@ -114,7 +114,7 @@ OPTIMIZATION:
 urlfinder -d tesla.com
 ```
 
-This command enumerates URLs for the target domain projectdiscovery.io.
+This command enumerates URLs for the target domain tesla.com.
 
 Example run:
 
