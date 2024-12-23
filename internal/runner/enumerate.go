@@ -54,6 +54,16 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 
 				url := replacer.Replace(result.Value)
 
+				inScope, scopeErr := r.ValidateScope(url, query)
+				if scopeErr != nil {
+					gologger.Debug().Msgf("Error validating scope for `%v`: %v. skipping", url, scopeErr)
+					continue
+				}
+				if !inScope {
+					gologger.Debug().Msgf("`%v` not in scope. skipping", url)
+					continue
+				}
+
 				if matchUrl := r.filterAndMatchUrl(url); matchUrl {
 					if _, ok := uniqueMap[url]; !ok {
 						sourceMap[url] = make(map[string]struct{})

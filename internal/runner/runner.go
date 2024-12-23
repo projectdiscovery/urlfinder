@@ -16,16 +16,19 @@ import (
 	contextutil "github.com/projectdiscovery/utils/context"
 	fileutil "github.com/projectdiscovery/utils/file"
 	mapsutil "github.com/projectdiscovery/utils/maps"
+	urlutil "github.com/projectdiscovery/utils/url"
 
 	"github.com/projectdiscovery/urlfinder/pkg/agent"
+	"github.com/projectdiscovery/urlfinder/pkg/utils/scope"
 )
 
 // Runner is an instance of the url enumeration
 // client used to orchestrate the whole process.
 type Runner struct {
-	options   *Options
-	agent     *agent.Agent
-	rateLimit *agent.CustomRateLimit
+	options      *Options
+	agent        *agent.Agent
+	rateLimit    *agent.CustomRateLimit
+	scopeManager *scope.Manager
 }
 
 // NewRunner creates a new runner struct instance by parsing
@@ -33,6 +36,12 @@ type Runner struct {
 // and setting up loggers, etc.
 func NewRunner(options *Options) (*Runner, error) {
 	runner := &Runner{options: options}
+
+	scopeManager, err := scope.NewManager(options.UrlScope, options.UrlOutOfScope, options.FieldScope, options.NoScope)
+	if err != nil {
+		gologger.Fatal().Msgf("Could not create scope manager: %s\n", err)
+	}
+	runner.scopeManager = scopeManager
 
 	// Check if the application loading with any provider configuration, then take it
 	// Otherwise load the default provider config
@@ -65,6 +74,7 @@ func NewRunner(options *Options) (*Runner, error) {
 
 func (r *Runner) initializeAgent() {
 	r.agent = agent.New(r.options.Sources, r.options.ExcludeSources, r.options.All)
+
 }
 
 // RunEnumeration wraps RunEnumerationWithCtx with an empty context
@@ -146,4 +156,16 @@ func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Rea
 		}
 	}
 	return nil
+}
+
+// ValidateScope validates scope for an AbsURL
+func (r *Runner) ValidateScope(absURL, rootHostname string) (bool, error) {
+	parsed, err := urlutil.Parse(absURL)
+	if err != nil {
+		return false, err
+	}
+	if r.scopeManager != nil {
+		return r.scopeManager.Validate(parsed.URL, rootHostname)
+	}
+	return true, nil
 }
