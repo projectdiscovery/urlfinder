@@ -151,8 +151,8 @@ github.com/projectdiscovery/dnsx v1.1.6 h1:QdKVKC0n/fpgaB4q3s6A2wn+qqg75CY0XxNkU
 github.com/projectdiscovery/dnsx v1.1.6/go.mod h1:9rkLQzJHxQ26qiD1PhfoJDrhqCVN8lKLsxiAON1uDxM=
 github.com/projectdiscovery/fdmax v0.0.4 h1:K9tIl5MUZrEMzjvwn/G4drsHms2aufTn1xUdeVcmhmc=
 github.com/projectdiscovery/fdmax v0.0.4/go.mod h1:oZLqbhMuJ5FmcoaalOm31B1P4Vka/CqP50nWjgtSz+I=
-github.com/projectdiscovery/goflags v0.1.67 h1:WOS1gdirH1Xrig8tYM9QC5UD/dfgABUcvrL0d8/fCPA=
-github.com/projectdiscovery/goflags v0.1.67/go.mod h1:cg6+yrLlaekP1hnefBc/UXbH1YGWa0fuzEW9iS1aG4g=
+github.com/projectdiscovery/goflags v0.1.68 h1:o+uROASO6hNkLEU127/SXjUyGC0wCjiyGZedKejhW8k=
+github.com/projectdiscovery/goflags v0.1.68/go.mod h1:WmVQzaIzh8xFZ3Akz8RzA6yfULkJdbWWgWu+5hZD9cg=
 github.com/projectdiscovery/gologger v1.1.40 h1:FSIhKnYKzuIEIz3RTg6JX9JtDKgkEzIEf2v5RYckoQ4=
 github.com/projectdiscovery/gologger v1.1.40/go.mod h1:8AUxYXmClqOWJgZ5wknNn5rRK3UlrXQ/r9JjX+gp5Gg=
 github.com/projectdiscovery/machineid v0.0.0-20240226150047-2e2c51e35983 h1:ZScLodGSezQVwsQDtBSMFp72WDq0nNN+KE/5DHKY5QE=
@@ -248,8 +248,8 @@ golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2/go.mod h1:9nx3DQGgdP8bBQD5qx
 golang.org/x/net v0.0.0-20220722155237-a158d28d115b/go.mod h1:XRhObCWvk6IyKnWLug+ECip1KBveYUHfp+8e9klMJ9c=
 golang.org/x/net v0.6.0/go.mod h1:2Tu9+aMcznHK/AK1HMvgo6xiTLG5rD5rZLDS+rp2Bjs=
 golang.org/x/net v0.8.0/go.mod h1:QVkue5JL9kW//ek3r6jTKnTFis1tRmNAW2P1shuFdJc=
-golang.org/x/net v0.29.0 h1:5ORfpBpCs4HzDYoodCDBbwHzdR5UrLBZ3sOnUJmFoHo=
-golang.org/x/net v0.29.0/go.mod h1:gLkgy8jTGERgjzMic6DS9+SP0ajcu6Xu3Orq/SpETg0=
+golang.org/x/net v0.33.0 h1:74SYHlV8BIgHIFC/LrYkOGIwL19eTYXQ5wc6TBuO36I=
+golang.org/x/net v0.33.0/go.mod h1:HXLR5J+9DxmrqMwG9qjGCxZ+zKXxBru04zlTvWlWuN4=
 golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/oauth2 v0.5.0/go.mod h1:9/XBHVqLaWO3/BRHs5jbpYCnOZVjj5V0ndyaAM7KB4I=
 golang.org/x/oauth2 v0.11.0 h1:vPL4xzxBM4niKCW6g9whtaWVXTJf1U5e4aZxxFx/gbU=
