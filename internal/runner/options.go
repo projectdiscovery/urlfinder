@@ -37,6 +37,11 @@ type Options struct {
 	Stdin              bool                // Stdin specifies whether stdin input was given to the process
 	Version            bool                // Version specifies if we should just show version and exit
 	All                bool                // All specifies whether to use all (slow) sources.
+	UrlScope           goflags.StringSlice // UrlScope is the list of urls to follow
+	UrlOutOfScope      goflags.StringSlice // UrlOutOfScope is the list of urls to exclude
+	FieldScope         string              // FieldScope is the field to use for scope
+	NoScope            bool                // NoScope disables host based default scope
+	DisplayOutScope    bool                // DisplayOutScope displays external endpoint from scoped crawling
 	Statistics         bool                // Statistics specifies whether to report source statistics
 	Timeout            int                 // Timeout is the seconds to wait for sources to respond
 	MaxEnumerationTime int                 // MaxEnumerationTime is the maximum amount of time in minutes to wait for enumeration
@@ -80,6 +85,14 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.Sources, "sources", "s", nil, "specific sources to use for discovery (-s alienvault,commoncrawl). Use -ls to display all available sources.", goflags.NormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.ExcludeSources, "exclude-sources", "es", nil, "sources to exclude from enumeration (-es alienvault,commoncrawl)", goflags.NormalizedStringSliceOptions),
 		flagSet.BoolVar(&options.All, "all", false, "use all sources for enumeration (slow)"),
+	)
+
+	flagSet.CreateGroup("scope", "Scope",
+		flagSet.StringSliceVarP(&options.UrlScope, "url-scope", "us", nil, "in scope url regex to be followed by urlfinder", goflags.FileCommaSeparatedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.UrlOutOfScope, "url-out-scope", "uos", nil, "out of scope url regex to be excluded by urlfinder", goflags.FileCommaSeparatedStringSliceOptions),
+		flagSet.StringVarP(&options.FieldScope, "field-scope", "fs", "rdn", "pre-defined scope field (dn,rdn,fqdn) or custom regex (e.g., '(company-staging.io|company.com)')"),
+		flagSet.BoolVarP(&options.NoScope, "no-scope", "ns", false, "disables host based default scope"),
+		flagSet.BoolVarP(&options.DisplayOutScope, "display-out-scope", "do", false, "display external endpoint from scoped crawling"),
 	)
 
 	flagSet.CreateGroup("filter", "Filter",
