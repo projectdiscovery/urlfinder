@@ -69,6 +69,12 @@ SOURCE:
    -s, -sources string[]           specific sources for discovery (e.g., -s alienvault,commoncrawl)
    -es, -exclude-sources string[]   sources to exclude (e.g., -es alienvault,commoncrawl)
    -all                             use all sources (may be slower)
+SCOPE:
+   -us, -url-scope string[]       in scope url regex to be followed by urlfinder
+   -uos, -url-out-scope string[]  out of scope url regex to be excluded by urlfinder
+   -fs, -field-scope string       pre-defined scope field (dn,rdn,fqdn) or custom regex (e.g., '(company-staging.io|company.com)') (default "rdn")
+   -ns, -no-scope                 disables host based default scope
+   -do, -display-out-scope        display external endpoint from scoped crawling
 
 FILTER:
    -m, -match string[]       URLs or list to match (file or comma-separated)
@@ -114,7 +120,7 @@ OPTIMIZATION:
 urlfinder -d tesla.com
 ```
 
-This command enumerates URLs for the target domain projectdiscovery.io.
+This command enumerates URLs for the target domain tesla.com.
 
 Example run:
 
