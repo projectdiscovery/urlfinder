@@ -63,7 +63,7 @@ type Options struct {
 	filterRegexes      []*regexp.Regexp
 	ExtensionsMatch    goflags.StringSlice
 	ExtensionFilter    goflags.StringSlice
-	NoDefaultExtFilter bool // NoDefaultExtFilter disables default extension filtering
+	NoDefaultExtFilter bool
 	extensionValidator *extensions.Validator
 	ResultCallback     OnResultCallback // OnResult callback
 	DisableUpdateCheck bool             // DisableUpdateCheck disable update checking
