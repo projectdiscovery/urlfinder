@@ -13,6 +13,7 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/urlfinder/pkg/agent"
 	"github.com/projectdiscovery/urlfinder/pkg/resolve"
+	"github.com/projectdiscovery/urlfinder/pkg/utils/extensions"
 	fileutil "github.com/projectdiscovery/utils/file"
 	folderutil "github.com/projectdiscovery/utils/folder"
 	logutil "github.com/projectdiscovery/utils/log"
@@ -60,6 +61,10 @@ type Options struct {
 	Filter             goflags.StringSlice
 	matchRegexes       []*regexp.Regexp
 	filterRegexes      []*regexp.Regexp
+	ExtensionsMatch    goflags.StringSlice
+	ExtensionFilter    goflags.StringSlice
+	NoDefaultExtFilter bool // NoDefaultExtFilter disables default extension filtering
+	extensionValidator *extensions.Validator
 	ResultCallback     OnResultCallback // OnResult callback
 	DisableUpdateCheck bool             // DisableUpdateCheck disable update checking
 }
@@ -98,6 +103,9 @@ func ParseOptions() *Options {
 	flagSet.CreateGroup("filter", "Filter",
 		flagSet.StringSliceVarP(&options.Match, "match", "m", nil, "url or list of url to match (file or comma separated)", goflags.FileNormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.Filter, "filter", "f", nil, " url or list of url to filter (file or comma separated)", goflags.FileNormalizedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.ExtensionsMatch, "extension-match", "em", nil, "match output for given extension (eg, -em php,html,js)", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.ExtensionFilter, "extension-filter", "ef", nil, "filter output for given extension (eg, -ef png,css)", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.BoolVarP(&options.NoDefaultExtFilter, "no-default-ext-filter", "ndef", false, "remove default extensions from the filter list"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-limit",
@@ -233,6 +241,12 @@ func (options *Options) preProcessOptions() {
 		options.URLs[i], _ = sanitize(url)
 
 	}
+
+	options.extensionValidator = extensions.NewValidator(
+		options.ExtensionsMatch,
+		options.ExtensionFilter,
+		options.NoDefaultExtFilter,
+	)
 }
 
 var defaultRateLimits = []string{
