@@ -50,7 +50,9 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			sess.DiscardHTTPResponse(resp)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 
 		var data response
 		err = json.NewDecoder(resp.Body).Decode(&data)

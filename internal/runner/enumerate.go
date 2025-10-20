@@ -65,6 +65,10 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 				}
 
 				if matchUrl := r.filterAndMatchUrl(url); matchUrl {
+					if r.options.extensionValidator != nil && !r.options.extensionValidator.ValidatePath(url) {
+						gologger.Debug().Msgf("`%v` filtered by extension. skipping", url)
+						continue
+					}
 					if _, ok := uniqueMap[url]; !ok {
 						sourceMap[url] = make(map[string]struct{})
 					}
