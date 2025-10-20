@@ -129,7 +129,7 @@ func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Rea
 
 			err = r.EnumerateSingleQueryWithCtx(ctx, url, append(writers, file))
 
-			file.Close()
+			_ = file.Close()
 		} else if r.options.OutputDirectory != "" {
 			outputFile := path.Join(r.options.OutputDirectory, url)
 			if r.options.JSON {
@@ -147,7 +147,7 @@ func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Rea
 
 			err = r.EnumerateSingleQueryWithCtx(ctx, url, append(writers, file))
 
-			file.Close()
+			_ = file.Close()
 		} else {
 			err = r.EnumerateSingleQueryWithCtx(ctx, url, writers)
 		}

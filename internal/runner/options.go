@@ -62,7 +62,7 @@ type Options struct {
 	matchRegexes       []*regexp.Regexp
 	filterRegexes      []*regexp.Regexp
 	ExtensionsMatch    goflags.StringSlice
-	ExtensionFilter    goflags.StringSlice
+	ExtensionsFilter   goflags.StringSlice
 	NoDefaultExtFilter bool
 	extensionValidator *extensions.Validator
 	ResultCallback     OnResultCallback // OnResult callback
@@ -104,7 +104,7 @@ func ParseOptions() *Options {
 		flagSet.StringSliceVarP(&options.Match, "match", "m", nil, "url or list of url to match (file or comma separated)", goflags.FileNormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.Filter, "filter", "f", nil, " url or list of url to filter (file or comma separated)", goflags.FileNormalizedStringSliceOptions),
 		flagSet.StringSliceVarP(&options.ExtensionsMatch, "extension-match", "em", nil, "match output for given extension (eg, -em php,html,js)", goflags.CommaSeparatedStringSliceOptions),
-		flagSet.StringSliceVarP(&options.ExtensionFilter, "extension-filter", "ef", nil, "filter output for given extension (eg, -ef png,css)", goflags.CommaSeparatedStringSliceOptions),
+		flagSet.StringSliceVarP(&options.ExtensionsFilter, "extension-filter", "ef", nil, "filter output for given extension (eg, -ef png,css)", goflags.CommaSeparatedStringSliceOptions),
 		flagSet.BoolVarP(&options.NoDefaultExtFilter, "no-default-ext-filter", "ndef", false, "remove default extensions from the filter list"),
 	)
 
@@ -244,7 +244,7 @@ func (options *Options) preProcessOptions() {
 
 	options.extensionValidator = extensions.NewValidator(
 		options.ExtensionsMatch,
-		options.ExtensionFilter,
+		options.ExtensionsFilter,
 		options.NoDefaultExtFilter,
 	)
 }

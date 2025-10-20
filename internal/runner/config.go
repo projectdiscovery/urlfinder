@@ -16,7 +16,9 @@ func createProviderConfigYAML(configFilePath string) error {
 	if err != nil {
 		return err
 	}
-	defer configFile.Close()
+	defer func() {
+		_ = configFile.Close()
+	}()
 
 	sourcesRequiringApiKeysMap := make(map[string][]string)
 	for _, source := range agent.AllSources {

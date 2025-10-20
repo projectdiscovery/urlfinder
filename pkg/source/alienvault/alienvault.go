@@ -57,10 +57,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err}
 				s.errors++
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				return
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			for _, record := range response.URLList {
 				for _, extractedURL := range sess.Extractor.Extract(record.URL) {

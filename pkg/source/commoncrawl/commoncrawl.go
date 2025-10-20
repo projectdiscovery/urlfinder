@@ -57,10 +57,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		if err != nil {
 			results <- source.Result{Source: s.Name(), Error: err}
 			s.errors++
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		years := make([]string, 0)
 		for i := 0; i < maxYearsBack; i++ {
@@ -149,7 +149,7 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 					}
 				}
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return true
 		}
 	}

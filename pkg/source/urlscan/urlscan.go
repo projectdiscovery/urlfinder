@@ -77,10 +77,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err}
 				s.errors++
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				return
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 
 			if resp.StatusCode == http.StatusTooManyRequests {
 				results <- source.Result{Source: s.Name(), Error: fmt.Errorf("urlscan rate limited")}

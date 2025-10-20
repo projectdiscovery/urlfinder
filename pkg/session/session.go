@@ -142,7 +142,7 @@ func (s *Session) DiscardHTTPResponse(response *http.Response) {
 			gologger.Warning().Msgf("Could not discard response body: %s\n", err)
 			return
 		}
-		response.Body.Close()
+		_ = response.Body.Close()
 	}
 }
 
