@@ -121,7 +121,7 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 			return false
 		default:
 			var headers = map[string]string{"Host": "index.commoncrawl.org"}
-			currentSearchURL := fmt.Sprintf("%s?url=*.%s", searchURL, rootURL)
+			currentSearchURL := fmt.Sprintf("%s?url=*.%s&output=text&fl=url&collapse=urlkey", searchURL, rootURL)
 			resp, err := sess.Get(ctx, currentSearchURL, "", headers)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err}
