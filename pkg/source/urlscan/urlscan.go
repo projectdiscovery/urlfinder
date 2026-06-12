@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	neturl "net/url"
 	"strconv"
 	"time"
 
@@ -29,10 +30,37 @@ type Page struct {
 }
 
 type Source struct {
+	searchURL string
+
 	apiKeys   []string
 	timeTaken time.Duration
 	errors    int
 	results   int
+}
+
+const defaultSearchURL = "https://urlscan.io/api/v1/search/"
+
+func (s *Source) buildSearchURL(rootURL, searchAfter string) (string, error) {
+	baseURL := defaultSearchURL
+	if s.searchURL != "" {
+		baseURL = s.searchURL
+	}
+
+	parsedURL, err := neturl.Parse(baseURL)
+	if err != nil {
+		return "", err
+	}
+
+	query := parsedURL.Query()
+	query.Set("q", "domain:"+rootURL)
+	query.Set("size", "10000")
+
+	if searchAfter != "" {
+		query.Set("search_after", searchAfter)
+	}
+
+	parsedURL.RawQuery = query.Encode()
+	return parsedURL.String(), nil
 }
 
 func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session) <-chan source.Result {
@@ -58,10 +86,15 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		var searchAfter string
 		hasMore := true
 		headers := map[string]string{"API-Key": randomApiKey}
-		apiURL := fmt.Sprintf("https://urlscan.io/api/v1/search/?q=domain:%s&size=10000", rootUrl)
 		for hasMore {
-			if searchAfter != "" {
-				apiURL = fmt.Sprintf("%s&search_after=%s", apiURL, searchAfter)
+			apiURL, err := s.buildSearchURL(rootUrl, searchAfter)
+			if err != nil {
+				results <- source.Result{
+					Source: s.Name(),
+					Error:  err,
+				}
+				s.errors++
+				return
 			}
 
 			resp, err := sess.Get(ctx, apiURL, "", headers)
