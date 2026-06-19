@@ -130,7 +130,6 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 			q.Set("url", "*."+rootURL)
 			q.Set("output", "text")
 			q.Set("fl", "url")
-			q.Set("collapse", "urlkey")
 			u.RawQuery = q.Encode()
 			currentSearchURL := u.String()
 			resp, err := sess.Get(ctx, currentSearchURL, "", headers)
@@ -150,10 +149,6 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 				}
 				line, _ = url.QueryUnescape(line)
 				for _, extractedURL := range sess.Extractor.Extract(line) {
-					// fix for triple encoded URL
-					extractedURL = (extractedURL)
-					extractedURL = strings.TrimPrefix(extractedURL, "25")
-					extractedURL = strings.TrimPrefix(extractedURL, "2f")
 					if extractedURL != "" {
 						results <- source.Result{Source: s.Name(), Value: extractedURL, Reference: currentSearchURL}
 						s.results++
