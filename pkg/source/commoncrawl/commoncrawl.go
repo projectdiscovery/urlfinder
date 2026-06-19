@@ -3,7 +3,6 @@ package commoncrawl
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -121,7 +120,18 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 			return false
 		default:
 			var headers = map[string]string{"Host": "index.commoncrawl.org"}
-			currentSearchURL := fmt.Sprintf("%s?url=*.%s", searchURL, rootURL)
+			u, err := url.Parse(searchURL)
+			if err != nil {
+				results <- source.Result{Source: s.Name(), Error: err}
+				s.errors++
+				return false
+			}
+			q := u.Query()
+			q.Set("url", "*."+rootURL)
+			q.Set("output", "text")
+			q.Set("fl", "url")
+			u.RawQuery = q.Encode()
+			currentSearchURL := u.String()
 			resp, err := sess.Get(ctx, currentSearchURL, "", headers)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err}
@@ -139,10 +149,6 @@ func (s *Source) getURLs(ctx context.Context, searchURL, rootURL string, sess *s
 				}
 				line, _ = url.QueryUnescape(line)
 				for _, extractedURL := range sess.Extractor.Extract(line) {
-					// fix for triple encoded URL
-					extractedURL = (extractedURL)
-					extractedURL = strings.TrimPrefix(extractedURL, "25")
-					extractedURL = strings.TrimPrefix(extractedURL, "2f")
 					if extractedURL != "" {
 						results <- source.Result{Source: s.Name(), Value: extractedURL, Reference: currentSearchURL}
 						s.results++
