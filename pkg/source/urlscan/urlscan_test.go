@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	neturl "net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -162,4 +163,104 @@ func TestRunValidResponse(t *testing.T) {
 		t.Fatalf("expected reference size query parameter %q, got %q", "10000", referenceQuery.Get("size"))
 	}
 
+}
+
+func TestRunPaginatesWithoutAccumulatingSearchAfter(t *testing.T) {
+	src := &Source{}
+	src.AddApiKeys([]string{"test-key"})
+
+	var requests int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != searchPath {
+			t.Errorf("expected %q path, got %q path", searchPath, r.URL.Path)
+			return
+		}
+
+		query := r.URL.Query()
+		// Regardless of the page, there must never be more than one
+		// search_after value: the previous implementation appended a new
+		// search_after parameter on every iteration instead of replacing it.
+		if got := query["search_after"]; len(got) > 1 {
+			t.Errorf("expected at most one search_after value, got %d: %v", len(got), got)
+			return
+		}
+
+		switch atomic.AddInt32(&requests, 1) {
+		case 1:
+			if query.Get("search_after") != "" {
+				t.Errorf("expected empty search_after on first page, got %q", query.Get("search_after"))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{
+				"results": [
+					{"page": {"url": "https://blog.example.com/page1"}, "sort": [123, "abc"]}
+				],
+				"has_more": true
+			}`))
+		default:
+			if query.Get("search_after") != "123,abc" {
+				t.Errorf("expected search_after %q on second page, got %q", "123,abc", query.Get("search_after"))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{
+				"results": [
+					{"page": {"url": "https://blog.example.com/page2"}, "sort": [456, "def"]}
+				],
+				"has_more": false
+			}`))
+		}
+	}))
+	defer server.Close()
+
+	src.searchURL = server.URL + searchPath
+	ctx := context.WithValue(context.Background(), session.CtxSourceArg, src.Name())
+	multiRateLimiter, err := ratelimit.NewMultiLimiter(ctx, &ratelimit.Options{
+		Key:         src.Name(),
+		IsUnlimited: true,
+		MaxCount:    math.MaxUint32,
+		Duration:    time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("failed to create a rate limiter: %v", err)
+	}
+	defer multiRateLimiter.Stop()
+
+	urlExtractor, err := extractor.NewRegexUrlExtractor("example.com")
+	if err != nil {
+		t.Fatalf("failed to create a URL extractor: %v", err)
+	}
+
+	sess := &session.Session{
+		Client:           server.Client(),
+		Extractor:        urlExtractor,
+		MultiRateLimiter: multiRateLimiter,
+	}
+
+	var results []source.Result
+	for result := range src.Run(ctx, "example.com", sess) {
+		if result.Error != nil {
+			t.Fatalf("expected nil error, got %v", result.Error)
+		}
+		results = append(results, result)
+	}
+
+	if atomic.LoadInt32(&requests) != 2 {
+		t.Fatalf("expected 2 paginated requests, got %d", atomic.LoadInt32(&requests))
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results across pages, got %d", len(results))
+	}
+
+	values := map[string]bool{}
+	for _, result := range results {
+		values[result.Value] = true
+	}
+	for _, expected := range []string{"https://blog.example.com/page1", "https://blog.example.com/page2"} {
+		if !values[expected] {
+			t.Fatalf("expected result value %q to be present, got %v", expected, results)
+		}
+	}
 }
