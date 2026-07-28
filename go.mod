@@ -16,7 +16,7 @@ require (
 	github.com/rs/xid v1.6.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b
-	golang.org/x/net v0.54.0
+	golang.org/x/net v0.55.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
