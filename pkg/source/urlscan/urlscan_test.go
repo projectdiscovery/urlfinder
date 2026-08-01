@@ -264,3 +264,69 @@ func TestRunPaginatesWithoutAccumulatingSearchAfter(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildSearchAfter(t *testing.T) {
+	tests := []struct {
+		name      string
+		sort      []interface{}
+		expected  string
+		shouldErr bool
+	}{
+		{
+			name:     "valid values",
+			sort:     []interface{}{float64(123), "abc"},
+			expected: "123,abc",
+		},
+		{
+			name:     "zero numeric value",
+			sort:     []interface{}{float64(0), "abc"},
+			expected: "0,abc",
+		},
+		{
+			name:     "large numeric value",
+			sort:     []interface{}{float64(2147483647), "cursor"},
+			expected: "2147483647,cursor",
+		},
+		{
+			name:      "missing second value",
+			sort:      []interface{}{float64(123)},
+			shouldErr: true,
+		},
+		{
+			name:      "invalid first value type",
+			sort:      []interface{}{"123", "abc"},
+			shouldErr: true,
+		},
+		{
+			name:      "invalid second value type",
+			sort:      []interface{}{float64(123), 456},
+			shouldErr: true,
+		},
+		{
+			name:      "empty second value",
+			sort:      []interface{}{float64(123), ""},
+			shouldErr: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			value, err := buildSearchAfter(Result{Sort: test.sort})
+
+			if test.shouldErr {
+				if err == nil {
+					t.Fatalf("expected an error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("expected nil error, got %v", err)
+			}
+
+			if value != test.expected {
+				t.Fatalf("expected %q, got %q", test.expected, value)
+			}
+		})
+	}
+}
