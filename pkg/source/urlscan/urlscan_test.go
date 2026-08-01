@@ -307,6 +307,16 @@ func TestBuildSearchAfter(t *testing.T) {
 			sort:      []interface{}{float64(123), ""},
 			shouldErr: true,
 		},
+		{
+			name:      "fractional first value",
+			sort:      []interface{}{123.5, "abc"},
+			shouldErr: true,
+		},
+		{
+			name:      "non-finite first value",
+			sort:      []interface{}{math.Inf(1), "abc"},
+			shouldErr: true,
+		},
 	}
 
 	for _, test := range tests {

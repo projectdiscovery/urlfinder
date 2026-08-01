@@ -3,8 +3,10 @@ package urlscan
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	neturl "net/url"
+	"strconv"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -72,6 +74,10 @@ func buildSearchAfter(result Result) (string, error) {
 		return "", fmt.Errorf("invalid urlscan sort: first value must be a number")
 	}
 
+	if math.IsNaN(firstValue) || math.IsInf(firstValue, 0) || firstValue != math.Trunc(firstValue) {
+		return "", fmt.Errorf("invalid urlscan sort: first value must be a finite integer")
+	}
+
 	secondValue, ok := result.Sort[1].(string)
 	if !ok {
 		return "", fmt.Errorf("invalid urlscan sort: second value must be a string")
@@ -81,7 +87,8 @@ func buildSearchAfter(result Result) (string, error) {
 		return "", fmt.Errorf("invalid urlscan sort: second value must not be empty")
 	}
 
-	return fmt.Sprintf("%d,%s", int(firstValue), secondValue), nil
+	formattedFirstValue := strconv.FormatFloat(firstValue, 'f', -1, 64)
+	return fmt.Sprintf("%s,%s", formattedFirstValue, secondValue), nil
 }
 
 func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session) <-chan source.Result {
