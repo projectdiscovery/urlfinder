@@ -90,7 +90,7 @@ func TestRunValidResponse(t *testing.T) {
 					"page": {
 						"url": "https://blog.example.com/test"
 					},
-					"sort": [123, "abc"]
+					"sort": [123]
 				}
 			],
 			"has_more": false
