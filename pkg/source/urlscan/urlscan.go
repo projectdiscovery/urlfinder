@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	neturl "net/url"
-	"strconv"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -63,6 +62,28 @@ func (s *Source) buildSearchURL(rootURL, searchAfter string) (string, error) {
 	return parsedURL.String(), nil
 }
 
+func buildSearchAfter(result Result) (string, error) {
+	if len(result.Sort) < 2 {
+		return "", fmt.Errorf("invalid urlscan sort: expected at least 2 values, got %d", len(result.Sort))
+	}
+
+	firstValue, ok := result.Sort[0].(float64)
+	if !ok {
+		return "", fmt.Errorf("invalid urlscan sort: first value must be a number")
+	}
+
+	secondValue, ok := result.Sort[1].(string)
+	if !ok {
+		return "", fmt.Errorf("invalid urlscan sort: second value must be a string")
+	}
+
+	if secondValue == "" {
+		return "", fmt.Errorf("invalid urlscan sort: second value must not be empty")
+	}
+
+	return fmt.Sprintf("%d,%s", int(firstValue), secondValue), nil
+}
+
 func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session) <-chan source.Result {
 	results := make(chan source.Result)
 	s.errors = 0
@@ -91,6 +112,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			if err != nil {
 				results <- source.Result{
 					Source: s.Name(),
+					Type:   source.Error,
 					Error:  err,
 				}
 				s.errors++
@@ -116,7 +138,11 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			_ = resp.Body.Close()
 
 			if resp.StatusCode == http.StatusTooManyRequests {
-				results <- source.Result{Source: s.Name(), Error: fmt.Errorf("urlscan rate limited")}
+				results <- source.Result{
+					Source: s.Name(),
+					Error:  fmt.Errorf("urlscan rate limited"),
+					Type:   source.Error,
+				}
 				s.errors++
 				return
 			}
@@ -127,16 +153,33 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 					s.results++
 				}
 			}
-			if len(data.Results) > 0 {
-				lastResult := data.Results[len(data.Results)-1]
-				if len(lastResult.Sort) > 0 {
-					sort1 := strconv.Itoa(int(lastResult.Sort[0].(float64)))
-					sort2, _ := lastResult.Sort[1].(string)
-
-					searchAfter = fmt.Sprintf("%s,%s", sort1, sort2)
-				}
+			hasMore := data.HasMore
+			if !hasMore {
+				break
 			}
-			hasMore = data.HasMore
+
+			if len(data.Results) == 0 {
+				results <- source.Result{
+					Source: s.Name(),
+					Type:   source.Error,
+					Error:  fmt.Errorf("urlscan returned has_more without results"),
+				}
+				s.errors++
+				return
+			}
+
+			lastResult := data.Results[len(data.Results)-1]
+
+			searchAfter, err = buildSearchAfter(lastResult)
+			if err != nil {
+				results <- source.Result{
+					Source: s.Name(),
+					Type:   source.Error,
+					Error:  err,
+				}
+				s.errors++
+				return
+			}
 		}
 	}()
 
