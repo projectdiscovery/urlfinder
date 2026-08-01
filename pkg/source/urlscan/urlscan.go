@@ -121,7 +121,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 
 			resp, err := sess.Get(ctx, apiURL, "", headers)
 			if err != nil {
-				results <- source.Result{Source: s.Name(), Error: err}
+				results <- source.Result{Source: s.Name(), Error: err, Type: source.Error}
 				s.errors++
 				sess.DiscardHTTPResponse(resp)
 				return
@@ -130,7 +130,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			var data response
 			err = jsoniter.NewDecoder(resp.Body).Decode(&data)
 			if err != nil {
-				results <- source.Result{Source: s.Name(), Error: err}
+				results <- source.Result{Source: s.Name(), Error: err, Type: source.Error}
 				s.errors++
 				_ = resp.Body.Close()
 				return
