@@ -12,6 +12,12 @@ import (
 	"github.com/projectdiscovery/urlfinder/pkg/source"
 )
 
+const (
+	// cdx lines can exceed bufio.Scanner's 64KB default, which silently truncates results
+	initialScanBuffer = 64 * 1024
+	maxScanBuffer     = 4 * 1024 * 1024
+)
+
 type Source struct {
 	timeTaken time.Duration
 	errors    int
@@ -43,6 +49,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		}()
 
 		scanner := bufio.NewScanner(resp.Body)
+		scanner.Buffer(make([]byte, 0, initialScanBuffer), maxScanBuffer)
 		for scanner.Scan() {
 			line := scanner.Text()
 			if line == "" {
@@ -59,6 +66,10 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 				s.results++
 			}
 
+		}
+		if err := scanner.Err(); err != nil {
+			results <- source.Result{Source: s.Name(), Type: source.Error, Error: err}
+			s.errors++
 		}
 	}()
 

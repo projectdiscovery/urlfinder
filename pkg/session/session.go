@@ -48,9 +48,10 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		Dial: (&net.Dialer{
+		DialContext: (&net.Dialer{
 			Timeout: time.Duration(timeout) * time.Second,
-		}).Dial,
+		}).DialContext,
+		TLSHandshakeTimeout: time.Duration(timeout) * time.Second,
 	}
 
 	// Add proxy
@@ -64,9 +65,11 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 		}
 	}
 
+	// timeout bounds connection setup only, not the whole exchange: sources like
+	// waybackarchive stream large responses for minutes, and a client-wide timeout
+	// aborts them mid-body. The request context (-max-time) bounds the request overall.
 	client := &http.Client{
 		Transport: Transport,
-		Timeout:   time.Duration(timeout) * time.Second,
 	}
 
 	session := &Session{Client: client}

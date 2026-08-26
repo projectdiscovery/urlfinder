@@ -44,7 +44,7 @@ type Options struct {
 	NoScope            bool                // NoScope disables host based default scope
 	DisplayOutScope    bool                // DisplayOutScope displays external endpoint from scoped crawling
 	Statistics         bool                // Statistics specifies whether to report source statistics
-	Timeout            int                 // Timeout is the seconds to wait for sources to respond
+	Timeout            int                 // Timeout is the seconds to wait when connecting to a source
 	MaxEnumerationTime int                 // MaxEnumerationTime is the maximum amount of time in minutes to wait for enumeration
 	URLs               goflags.StringSlice // URLs is the url to find urls for
 	Output             io.Writer
@@ -141,7 +141,7 @@ func ParseOptions() *Options {
 	)
 
 	flagSet.CreateGroup("optimization", "Optimization",
-		flagSet.IntVar(&options.Timeout, "timeout", 30, "seconds to wait before timing out"),
+		flagSet.IntVar(&options.Timeout, "timeout", 30, "seconds to wait before timing out when connecting to a source"),
 		flagSet.IntVar(&options.MaxEnumerationTime, "max-time", 10, "minutes to wait for enumeration results"),
 	)
 
