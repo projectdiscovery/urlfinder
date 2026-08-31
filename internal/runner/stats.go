@@ -2,19 +2,18 @@ package runner
 
 import (
 	"fmt"
-	"sort"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/urlfinder/pkg/source"
-	"golang.org/x/exp/maps"
 )
 
 func printStatistics(stats map[string]source.Statistics) {
 
-	sources := maps.Keys(stats)
-	sort.Strings(sources)
+	sources := slices.Sorted(maps.Keys(stats))
 
 	var lines []string
 	var skipped []string

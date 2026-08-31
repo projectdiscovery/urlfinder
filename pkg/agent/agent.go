@@ -3,14 +3,13 @@ package agent
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/exp/maps"
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/ratelimit"
@@ -60,7 +59,7 @@ func New(sourceNames, excludedSourceNames []string, useAllSources bool) *Agent {
 		gologger.Fatal().Msg("No sources selected for this search")
 	}
 
-	gologger.Debug().Msg(fmt.Sprintf("Selected source(s) for this search: %s", strings.Join(maps.Keys(sources), ", ")))
+	gologger.Debug().Msg(fmt.Sprintf("Selected source(s) for this search: %s", strings.Join(slices.Sorted(maps.Keys(sources)), ", ")))
 
 	for _, currentSource := range sources {
 		if warning, ok := sourceWarnings.Get((currentSource.Name())); ok {
@@ -69,7 +68,7 @@ func New(sourceNames, excludedSourceNames []string, useAllSources bool) *Agent {
 	}
 
 	// Create the agent, insert the sources and remove the excluded sources
-	agent := &Agent{sources: maps.Values(sources)}
+	agent := &Agent{sources: slices.Collect(maps.Values(sources))}
 
 	return agent
 }
