@@ -2,10 +2,13 @@ package urlscan
 
 import (
 	"context"
+	"errors"
+	"io"
 	"math"
 	"net/http"
 	"net/http/httptest"
 	neturl "net/url"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -265,6 +268,179 @@ func TestRunPaginatesWithoutAccumulatingSearchAfter(t *testing.T) {
 	}
 }
 
+func TestRunRejectsInvalidPagination(t *testing.T) {
+	tests := []struct {
+		name          string
+		response      string
+		expectedError string
+		expectedURLs  int
+	}{
+		{
+			name:          "has more without results",
+			response:      `{"results":[],"has_more":true}`,
+			expectedError: "has_more without results",
+		},
+		{
+			name:          "missing sort",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"}}],"has_more":true}`,
+			expectedError: "expected at least 2 values",
+			expectedURLs:  1,
+		},
+		{
+			name:          "missing second sort value",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"},"sort":[123]}],"has_more":true}`,
+			expectedError: "expected at least 2 values",
+			expectedURLs:  1,
+		},
+		{
+			name:          "invalid first sort value",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"},"sort":["123","cursor"]}],"has_more":true}`,
+			expectedError: "first value must be a number",
+			expectedURLs:  1,
+		},
+		{
+			name:          "fractional first sort value",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"},"sort":[123.5,"cursor"]}],"has_more":true}`,
+			expectedError: "first value must be a finite integer",
+			expectedURLs:  1,
+		},
+		{
+			name:          "invalid second sort value",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"},"sort":[123,456]}],"has_more":true}`,
+			expectedError: "second value must be a string",
+			expectedURLs:  1,
+		},
+		{
+			name:          "empty second sort value",
+			response:      `{"results":[{"page":{"url":"https://blog.example.com/test"},"sort":[123,""]}],"has_more":true}`,
+			expectedError: "second value must not be empty",
+			expectedURLs:  1,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				requests.Add(1)
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(test.response))
+			}))
+			defer server.Close()
+
+			src := &Source{searchURL: server.URL + searchPath}
+			src.AddApiKeys([]string{"test-key"})
+			sess := newTestSession(t, server.Client())
+
+			var urls, errors int
+			for result := range src.Run(context.WithValue(context.Background(), session.CtxSourceArg, src.Name()), "example.com", sess) {
+				switch result.Type {
+				case source.Url:
+					urls++
+				case source.Error:
+					errors++
+					if result.Error == nil || !strings.Contains(result.Error.Error(), test.expectedError) {
+						t.Fatalf("error = %v, want error containing %q", result.Error, test.expectedError)
+					}
+				default:
+					t.Fatalf("unexpected result type %d", result.Type)
+				}
+			}
+
+			if requests.Load() != 1 {
+				t.Fatalf("requests = %d, want 1", requests.Load())
+			}
+			if urls != test.expectedURLs {
+				t.Fatalf("URL results = %d, want %d", urls, test.expectedURLs)
+			}
+			if errors != 1 {
+				t.Fatalf("error results = %d, want 1", errors)
+			}
+			stats := src.Statistics()
+			if stats.Results != test.expectedURLs || stats.Errors != 1 {
+				t.Fatalf("statistics = {Results:%d Errors:%d}, want {Results:%d Errors:1}", stats.Results, stats.Errors, test.expectedURLs)
+			}
+		})
+	}
+}
+
+func TestRunBuildSearchURLErrorIsTyped(t *testing.T) {
+	src := &Source{searchURL: "%"}
+	src.AddApiKeys([]string{"test-key"})
+
+	results := src.Run(context.WithValue(context.Background(), session.CtxSourceArg, src.Name()), "example.com", nil)
+	result, ok := <-results
+	if !ok {
+		t.Fatal("expected an error result")
+	}
+	if result.Type != source.Error || result.Error == nil {
+		t.Fatalf("result = %#v, want typed source error", result)
+	}
+	if _, ok := <-results; ok {
+		t.Fatal("expected exactly one result")
+	}
+	if stats := src.Statistics(); stats.Errors != 1 {
+		t.Fatalf("errors = %d, want 1", stats.Errors)
+	}
+}
+
+func TestRunResponseErrorsAreTyped(t *testing.T) {
+	tests := []struct {
+		name      string
+		transport roundTripFunc
+	}{
+		{
+			name: "request error",
+			transport: func(*http.Request) (*http.Response, error) {
+				return nil, errors.New("request failed")
+			},
+		},
+		{
+			name: "unexpected status",
+			transport: func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusTooManyRequests,
+					Body:       io.NopCloser(strings.NewReader(`{}`)),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+		{
+			name: "decode error",
+			transport: func(*http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(strings.NewReader("not-json")),
+					Header:     make(http.Header),
+				}, nil
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			src := &Source{searchURL: "https://example.invalid" + searchPath}
+			src.AddApiKeys([]string{"test-key"})
+			sess := newTestSession(t, &http.Client{Transport: test.transport})
+
+			results := src.Run(context.WithValue(context.Background(), session.CtxSourceArg, src.Name()), "example.com", sess)
+			result, ok := <-results
+			if !ok {
+				t.Fatal("expected an error result")
+			}
+			if result.Type != source.Error || result.Error == nil {
+				t.Fatalf("result = %#v, want typed source error", result)
+			}
+			if _, ok := <-results; ok {
+				t.Fatal("expected exactly one result")
+			}
+			if stats := src.Statistics(); stats.Errors != 1 {
+				t.Fatalf("errors = %d, want 1", stats.Errors)
+			}
+		})
+	}
+}
+
 func TestBuildSearchAfter(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -283,9 +459,14 @@ func TestBuildSearchAfter(t *testing.T) {
 			expected: "0,abc",
 		},
 		{
-			name:     "large numeric value",
-			sort:     []interface{}{float64(2147483647), "cursor"},
-			expected: "2147483647,cursor",
+			name:     "millisecond timestamp",
+			sort:     []interface{}{float64(1788196934056), "cursor"},
+			expected: "1788196934056,cursor",
+		},
+		{
+			name:      "missing sort values",
+			sort:      nil,
+			shouldErr: true,
 		},
 		{
 			name:      "missing second value",
@@ -313,8 +494,18 @@ func TestBuildSearchAfter(t *testing.T) {
 			shouldErr: true,
 		},
 		{
-			name:      "non-finite first value",
+			name:      "positive infinite first value",
 			sort:      []interface{}{math.Inf(1), "abc"},
+			shouldErr: true,
+		},
+		{
+			name:      "negative infinite first value",
+			sort:      []interface{}{math.Inf(-1), "abc"},
+			shouldErr: true,
+		},
+		{
+			name:      "NaN first value",
+			sort:      []interface{}{math.NaN(), "abc"},
 			shouldErr: true,
 		},
 	}
@@ -339,4 +530,39 @@ func TestBuildSearchAfter(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newTestSession(t *testing.T, client *http.Client) *session.Session {
+	t.Helper()
+
+	ctx := context.WithValue(context.Background(), session.CtxSourceArg, "urlscan")
+	multiRateLimiter, err := ratelimit.NewMultiLimiter(ctx, &ratelimit.Options{
+		Key:         "urlscan",
+		IsUnlimited: true,
+		MaxCount:    math.MaxUint32,
+		Duration:    time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("failed to create a rate limiter: %v", err)
+	}
+	t.Cleanup(func() {
+		multiRateLimiter.Stop()
+	})
+
+	urlExtractor, err := extractor.NewRegexUrlExtractor("example.com")
+	if err != nil {
+		t.Fatalf("failed to create a URL extractor: %v", err)
+	}
+
+	return &session.Session{
+		Client:           client,
+		Extractor:        urlExtractor,
+		MultiRateLimiter: multiRateLimiter,
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
 }

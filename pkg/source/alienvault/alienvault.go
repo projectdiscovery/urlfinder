@@ -45,8 +45,9 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		for {
 			apiURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/url_list?page=%d", rootUrl, page)
 			resp, err := sess.SimpleGet(ctx, apiURL)
-			if err != nil && resp == nil {
+			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err, Type: source.Error}
+				s.errors++
 				sess.DiscardHTTPResponse(resp)
 				return
 			}

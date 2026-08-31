@@ -112,9 +112,8 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 		}
 
 		var searchAfter string
-		hasMore := true
 		headers := map[string]string{"API-Key": randomApiKey}
-		for hasMore {
+		for {
 			apiURL, err := s.buildSearchURL(rootUrl, searchAfter)
 			if err != nil {
 				results <- source.Result{
@@ -160,8 +159,7 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 					s.results++
 				}
 			}
-			hasMore := data.HasMore
-			if !hasMore {
+			if !data.HasMore {
 				break
 			}
 
