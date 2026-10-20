@@ -2,6 +2,8 @@ module github.com/projectdiscovery/urlfinder
 
 go 1.25.0
 
+toolchain go1.26.10
+
 require (
 	github.com/corpix/uarand v0.2.0
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
