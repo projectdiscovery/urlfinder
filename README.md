@@ -41,7 +41,7 @@ URLFinder is a high-speed, passive URL discovery tool designed to simplify and a
 
 ## Installation
 
-URLFinder requires **Go 1.21**. Install it using the following command or download a pre-compiled binary from the [releases page](https://github.com/projectdiscovery/urlfinder/releases).
+URLFinder requires **Go 1.26.10**. Install it using the following command or download a pre-compiled binary from the [releases page](https://github.com/projectdiscovery/urlfinder/releases).
 
 ```sh
 go install -v github.com/projectdiscovery/urlfinder/cmd/urlfinder@latest
