@@ -12,7 +12,7 @@ require (
 	github.com/projectdiscovery/goflags v0.2.1
 	github.com/projectdiscovery/gologger v1.1.75
 	github.com/projectdiscovery/ratelimit v0.0.94
-	github.com/projectdiscovery/utils v0.11.10
+	github.com/projectdiscovery/utils v0.11.13
 	github.com/rs/xid v1.6.0
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/net v0.58.0
@@ -64,7 +64,7 @@ require (
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/projectdiscovery/blackrock v0.0.2 // indirect
-	github.com/projectdiscovery/cdncheck v1.3.3 // indirect
+	github.com/projectdiscovery/cdncheck v1.4.0 // indirect
 	github.com/projectdiscovery/machineid v0.0.0-20250715113114-c77eb3567582 // indirect
 	github.com/projectdiscovery/retryabledns v1.0.118 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
