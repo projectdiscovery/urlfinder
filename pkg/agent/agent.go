@@ -154,9 +154,11 @@ func (a *Agent) buildMultiRateLimiter(ctx context.Context, globalRateLimit int, 
 	var multiRateLimiter *ratelimit.MultiLimiter
 	var err error
 	for _, source := range a.sources {
-		var rl uint
-		if sourceRateLimit, ok := rateLimit.Custom.Get((source.Name())); ok {
-			rl = sourceRateLimitOrDefault(uint(globalRateLimit), sourceRateLimit)
+		rl := uint(globalRateLimit)
+		if rateLimit != nil {
+			if sourceRateLimit, ok := rateLimit.Custom.Get(source.Name()); ok {
+				rl = sourceRateLimitOrDefault(rl, sourceRateLimit)
+			}
 		}
 
 		if rl > 0 {
