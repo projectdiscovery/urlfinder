@@ -1,8 +1,8 @@
 package waybackarchive
 
 import (
-	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -16,10 +16,6 @@ import (
 
 const (
 	defaultBaseURL = "https://web.archive.org"
-
-	// cdx lines can exceed bufio.Scanner's 64KB default, which silently truncates results
-	initialScanBuffer = 64 * 1024
-	maxScanBuffer     = 4 * 1024 * 1024
 
 	// A single unpaged CDX stream takes minutes for large domains and the server
 	// cuts it short without an error, so fetch bounded pages chained by resume key.
@@ -91,7 +87,7 @@ func (s *Source) pageURL(rootUrl, resumeKey string) string {
 	}
 	query := url.Values{}
 	query.Set("url", "*."+rootUrl+"/*")
-	query.Set("output", "txt")
+	query.Set("output", "json")
 	query.Set("fl", "original")
 	query.Set("collapse", "urlkey")
 	query.Set("limit", strconv.Itoa(pageSize))
@@ -128,7 +124,7 @@ func (s *Source) fetchPageWithRetry(ctx context.Context, sess *session.Session, 
 }
 
 // fetchPage returns the URLs of one CDX page and the resume key for the next one,
-// which the server sends after a blank line and omits on the last page.
+// which the server sends after an empty row and omits on the last page.
 func fetchPage(ctx context.Context, sess *session.Session, pageURL string) ([]string, string, error) {
 	resp, err := sess.SimpleGet(ctx, pageURL)
 	if err != nil {
@@ -139,29 +135,34 @@ func fetchPage(ctx context.Context, sess *session.Session, pageURL string) ([]st
 		_ = resp.Body.Close()
 	}()
 
-	var lines []string
+	// JSON rather than text output, because text has no end marker and a page cut
+	// between rows reads as a complete last page; a cut JSON array fails to decode
+	var rows [][]string
+	if err := json.NewDecoder(resp.Body).Decode(&rows); err != nil {
+		return nil, "", fmt.Errorf("could not decode wayback page: %w", err)
+	}
+	if len(rows) == 0 {
+		return nil, "", nil
+	}
+
+	// rows[0] is the field header; a non-final page ends with an empty row and the key
+	rows = rows[1:]
 	var nextKey string
-	afterBlank := false
-	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 0, initialScanBuffer), maxScanBuffer)
-	for scanner.Scan() {
-		line := scanner.Text()
-		switch {
-		case line == "":
-			afterBlank = true
-		case afterBlank:
-			nextKey = line
-		default:
-			line, _ = url.QueryUnescape(line)
-			lines = append(lines, line)
+	if n := len(rows); n >= 2 && len(rows[n-2]) == 0 {
+		if len(rows[n-1]) != 1 {
+			return nil, "", errors.New("wayback page has a malformed resume key")
 		}
+		nextKey = rows[n-1][0]
+		rows = rows[:n-2]
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, "", err
-	}
-	// the last page has no separator, so one without a key means the stream was cut
-	if afterBlank && nextKey == "" {
-		return nil, "", errors.New("wayback page ended before its resume key")
+
+	lines := make([]string, 0, len(rows))
+	for _, row := range rows {
+		if len(row) == 0 {
+			continue
+		}
+		line, _ := url.QueryUnescape(row[0])
+		lines = append(lines, line)
 	}
 	return lines, nextKey, nil
 }

@@ -2,6 +2,7 @@ package waybackarchive
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,14 +20,14 @@ import (
 func TestRunFollowsResumeKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
-		if query.Get("showResumeKey") != "true" || query.Get("limit") == "" {
+		if query.Get("showResumeKey") != "true" || query.Get("limit") == "" || query.Get("output") != "json" {
 			t.Errorf("expected paged query, got %q", r.URL.RawQuery)
 		}
 		switch query.Get("resumeKey") {
 		case "":
-			_, _ = fmt.Fprint(w, "https://example.com/a\nhttps://example.com/b\n\nkey-1\n")
+			_, _ = fmt.Fprint(w, cdxPage("key-1", "https://example.com/a", "https://example.com/b"))
 		case "key-1":
-			_, _ = fmt.Fprint(w, "https://example.com/c\n")
+			_, _ = fmt.Fprint(w, cdxPage("", "https://example.com/c"))
 		default:
 			t.Errorf("unexpected resumeKey %q", query.Get("resumeKey"))
 		}
@@ -45,13 +46,13 @@ func TestRunRetriesFailedPageWithoutDuplicates(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Query().Get("resumeKey") {
 		case "":
-			_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+			_, _ = fmt.Fprint(w, cdxPage("key-1", "https://example.com/a"))
 		case "key-1":
 			if secondPageCalls.Add(1) == 1 {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
-			_, _ = fmt.Fprint(w, "https://example.com/b\n")
+			_, _ = fmt.Fprint(w, cdxPage("", "https://example.com/b"))
 		}
 	}))
 	defer server.Close()
@@ -69,7 +70,7 @@ func TestRunRetriesFailedPageWithoutDuplicates(t *testing.T) {
 func TestRunReportsPageThatKeepsFailing(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("resumeKey") == "" {
-			_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+			_, _ = fmt.Fprint(w, cdxPage("key-1", "https://example.com/a"))
 			return
 		}
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -129,18 +130,28 @@ func assertURLs(t *testing.T, got []string, want ...string) {
 	}
 }
 
-func TestRunRetriesPageCutAfterSeparator(t *testing.T) {
+func TestRunRetriesCutPage(t *testing.T) {
+	for name, cut := range map[string]string{
+		"mid rows":        "[[\"original\"],\n[\"https://example.com/a\"],\n",
+		"after separator": "[[\"original\"],\n[\"https://example.com/a\"],\n[],\n",
+		"html error page": "<html><body>We apologize for the inconvenience.</body></html>",
+	} {
+		t.Run(name, func(t *testing.T) { testRunRetriesCutPage(t, cut) })
+	}
+}
+
+func testRunRetriesCutPage(t *testing.T, cut string) {
 	var firstPageCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Query().Get("resumeKey") {
 		case "":
 			if firstPageCalls.Add(1) == 1 {
-				_, _ = fmt.Fprint(w, "https://example.com/a\n\n")
+				_, _ = fmt.Fprint(w, cut)
 				return
 			}
-			_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+			_, _ = fmt.Fprint(w, cdxPage("key-1", "https://example.com/a"))
 		case "key-1":
-			_, _ = fmt.Fprint(w, "https://example.com/b\n")
+			_, _ = fmt.Fprint(w, cdxPage("", "https://example.com/b"))
 		}
 	}))
 	defer server.Close()
@@ -154,7 +165,7 @@ func TestRunRetriesPageCutAfterSeparator(t *testing.T) {
 
 func TestRunStopsOnRepeatedResumeKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+		_, _ = fmt.Fprint(w, cdxPage("key-1", "https://example.com/a"))
 	}))
 	defer server.Close()
 
@@ -163,4 +174,18 @@ func TestRunStopsOnRepeatedResumeKey(t *testing.T) {
 	if errs != 1 {
 		t.Fatalf("errors = %d, want 1", errs)
 	}
+}
+
+// cdxPage renders a CDX JSON page: a header row, one row per URL, and on every
+// page but the last an empty row followed by the resume key.
+func cdxPage(resumeKey string, urls ...string) string {
+	rows := [][]string{{"original"}}
+	for _, u := range urls {
+		rows = append(rows, []string{u})
+	}
+	if resumeKey != "" {
+		rows = append(rows, []string{}, []string{resumeKey})
+	}
+	body, _ := json.Marshal(rows)
+	return string(body)
 }
