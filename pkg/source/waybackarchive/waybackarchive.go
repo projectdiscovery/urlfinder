@@ -3,6 +3,7 @@ package waybackarchive
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -52,6 +53,11 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			lines, nextKey, err := s.fetchPageWithRetry(ctx, sess, pageURL)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Type: source.Error, Error: err}
+				s.errors++
+				return
+			}
+			if nextKey != "" && nextKey == resumeKey {
+				results <- source.Result{Source: s.Name(), Type: source.Error, Error: fmt.Errorf("wayback returned the same resume key %q", nextKey)}
 				s.errors++
 				return
 			}
@@ -152,6 +158,10 @@ func fetchPage(ctx context.Context, sess *session.Session, pageURL string) ([]st
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, "", err
+	}
+	// the last page has no separator, so one without a key means the stream was cut
+	if afterBlank && nextKey == "" {
+		return nil, "", errors.New("wayback page ended before its resume key")
 	}
 	return lines, nextKey, nil
 }

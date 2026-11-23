@@ -128,3 +128,39 @@ func assertURLs(t *testing.T, got []string, want ...string) {
 		}
 	}
 }
+
+func TestRunRetriesPageCutAfterSeparator(t *testing.T) {
+	var firstPageCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("resumeKey") {
+		case "":
+			if firstPageCalls.Add(1) == 1 {
+				_, _ = fmt.Fprint(w, "https://example.com/a\n\n")
+				return
+			}
+			_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+		case "key-1":
+			_, _ = fmt.Fprint(w, "https://example.com/b\n")
+		}
+	}))
+	defer server.Close()
+
+	urls, errs := run(t, server)
+	assertURLs(t, urls, "https://example.com/a", "https://example.com/b")
+	if errs != 0 {
+		t.Fatalf("errors = %d, want 0", errs)
+	}
+}
+
+func TestRunStopsOnRepeatedResumeKey(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = fmt.Fprint(w, "https://example.com/a\n\nkey-1\n")
+	}))
+	defer server.Close()
+
+	urls, errs := run(t, server)
+	assertURLs(t, urls, "https://example.com/a")
+	if errs != 1 {
+		t.Fatalf("errors = %d, want 1", errs)
+	}
+}
