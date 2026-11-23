@@ -84,8 +84,12 @@ func (s *Source) IsDefault() bool {
 	return true
 }
 
+func (s *Source) KeyRequirement() source.KeyRequirement {
+	return source.NoKey
+}
+
 func (s *Source) NeedsKey() bool {
-	return false
+	return s.KeyRequirement() == source.RequiredKey
 }
 
 func (s *Source) AddApiKeys(_ []string) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/projectdiscovery/urlfinder/pkg/session"
 	"github.com/projectdiscovery/urlfinder/pkg/source"
+	"github.com/projectdiscovery/urlfinder/pkg/utils"
 	urlutil "github.com/projectdiscovery/utils/url"
 )
 
@@ -21,6 +22,7 @@ type url struct {
 }
 
 type Source struct {
+	apiKeys   []string
 	timeTaken time.Duration
 	errors    int
 	results   int
@@ -41,10 +43,16 @@ func (s *Source) Run(ctx context.Context, rootUrl string, sess *session.Session)
 			rootUrl = parsedRootUrl.Hostname()
 		}
 
+		// OTX serves url_list without a key but rate-limits anonymous clients hard
+		headers := map[string]string{}
+		if len(s.apiKeys) > 0 {
+			headers["X-OTX-API-KEY"] = utils.PickRandom(s.apiKeys, s.Name())
+		}
+
 		page := 1
 		for {
 			apiURL := fmt.Sprintf("https://otx.alienvault.com/api/v1/indicators/domain/%s/url_list?page=%d", rootUrl, page)
-			resp, err := sess.SimpleGet(ctx, apiURL)
+			resp, err := sess.Get(ctx, apiURL, "", headers)
 			if err != nil {
 				results <- source.Result{Source: s.Name(), Error: err, Type: source.Error}
 				s.errors++
@@ -88,12 +96,16 @@ func (s *Source) IsDefault() bool {
 	return true
 }
 
-func (s *Source) NeedsKey() bool {
-	return false
+func (s *Source) KeyRequirement() source.KeyRequirement {
+	return source.OptionalKey
 }
 
-func (s *Source) AddApiKeys(_ []string) {
-	// no key needed
+func (s *Source) NeedsKey() bool {
+	return s.KeyRequirement() == source.RequiredKey
+}
+
+func (s *Source) AddApiKeys(keys []string) {
+	s.apiKeys = keys
 }
 
 func (s *Source) Statistics() source.Statistics {
