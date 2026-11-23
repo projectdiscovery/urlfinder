@@ -22,6 +22,18 @@ var replacer = strings.NewReplacer(
 	"*.", "",
 )
 
+// logResultError prints a source failure, or the enumeration deadline.
+// gologger's default ceiling is info: warning is a higher level and stays
+// hidden unless -v is set, so a max-time cutoff logged as a warning would
+// still look like a complete run.
+func logResultError(result source.Result) {
+	if result.Error != nil && strings.Contains(result.Error.Error(), "max-time reached") {
+		gologger.Info().Msgf("%s\n", result.Error)
+		return
+	}
+	gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
+}
+
 // EnumerateSingleQuery wraps EnumerateSingleQuerynWithCtx with an empty context
 func (r *Runner) EnumerateSingleQuery(query string, writers []io.Writer) error {
 	return r.EnumerateSingleQueryWithCtx(context.Background(), query, writers)
@@ -46,7 +58,7 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 		for result := range results {
 			switch result.Type {
 			case source.Error:
-				gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
+				logResultError(result)
 			case source.Url:
 				if result.Value == "" {
 					continue

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -145,6 +146,14 @@ func (a *Agent) EnumerateUrlsWithCtx(ctx context.Context, query string, proxy st
 			}(runner)
 		}
 		wg.Wait()
+		// Sources stop when the deadline fires and return whatever they already
+		// found. Say so: a silent cutoff looks like a complete result set.
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			results <- source.Result{
+				Type:  source.Error,
+				Error: errors.New("max-time reached, returning partial results"),
+			}
+		}
 		cancel()
 	}()
 	return results
