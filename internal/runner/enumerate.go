@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -124,7 +125,7 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 
 	if r.options.Statistics {
 		gologger.Info().Msgf("Printing source statistics for %s", query)
-		printStatistics(r.agent.GetStatistics())
+		printStatistics(os.Stderr, r.agent.GetStatistics())
 	}
 
 	return nil
