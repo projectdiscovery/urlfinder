@@ -103,6 +103,10 @@ func (a *Agent) EnumerateQueries(query string, proxy string, rateLimit int, time
 	return a.EnumerateUrlsWithCtx(context.Background(), query, proxy, rateLimit, timeout, maxEnumTime, options...)
 }
 
+// ErrMaxTimeReached is the result error when -max-time stops enumeration
+// before every source has finished. Compare it with errors.Is.
+var ErrMaxTimeReached = errors.New("max-time reached, returning partial results")
+
 // EnumerateUrlsWithCtx enumerates all the urls for a given query
 func (a *Agent) EnumerateUrlsWithCtx(ctx context.Context, query string, proxy string, rateLimit int, timeout int, maxEnumTime time.Duration, options ...EnumerateOption) chan source.Result {
 	results := make(chan source.Result)
@@ -131,7 +135,10 @@ func (a *Agent) EnumerateUrlsWithCtx(ctx context.Context, query string, proxy st
 		}
 		defer sess.Close()
 
-		ctx, cancel := context.WithTimeout(ctx, maxEnumTime)
+		// Keep the caller context. WithTimeout reports DeadlineExceeded when
+		// that parent deadline fires too, which is not -max-time.
+		parentCtx := ctx
+		ctx, cancel := context.WithTimeout(parentCtx, maxEnumTime)
 
 		wg := &sync.WaitGroup{}
 		// Run each source in parallel on the target url
@@ -148,10 +155,12 @@ func (a *Agent) EnumerateUrlsWithCtx(ctx context.Context, query string, proxy st
 		wg.Wait()
 		// Sources stop when the deadline fires and return whatever they already
 		// found. Say so: a silent cutoff looks like a complete result set.
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		// Only while the parent is still active: its own deadline or cancel
+		// must not be announced as -max-time.
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) && parentCtx.Err() == nil {
 			results <- source.Result{
 				Type:  source.Error,
-				Error: errors.New("max-time reached, returning partial results"),
+				Error: ErrMaxTimeReached,
 			}
 		}
 		cancel()

@@ -2,8 +2,8 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"math"
-	"strings"
 	"testing"
 	"time"
 
@@ -95,7 +95,7 @@ func collect(ch <-chan source.Result) []source.Result {
 
 func hasMaxTimeNotice(results []source.Result) bool {
 	for _, result := range results {
-		if result.Type == source.Error && result.Error != nil && strings.Contains(result.Error.Error(), "max-time reached") {
+		if result.Type == source.Error && errors.Is(result.Error, ErrMaxTimeReached) {
 			return true
 		}
 	}
@@ -169,5 +169,17 @@ func TestEnumerateUrlsWithCtxParentCancelIsNotMaxTime(t *testing.T) {
 
 	if hasMaxTimeNotice(results) {
 		t.Fatalf("parent cancel reported as max-time: %#v", results)
+	}
+}
+
+func TestEnumerateUrlsWithCtxParentDeadlineIsNotMaxTime(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+	defer cancel()
+
+	agent := &Agent{sources: []source.Source{blockingSource()}}
+	results := collect(agent.EnumerateUrlsWithCtx(ctx, "example.com", "", 0, 1, time.Minute, WithCustomRateLimit(emptyRateLimit())))
+
+	if hasMaxTimeNotice(results) {
+		t.Fatalf("parent deadline reported as max-time: %#v", results)
 	}
 }

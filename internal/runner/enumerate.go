@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 	"sync"
@@ -27,7 +28,7 @@ var replacer = strings.NewReplacer(
 // hidden unless -v is set, so a max-time cutoff logged as a warning would
 // still look like a complete run.
 func logResultError(result source.Result) {
-	if result.Error != nil && strings.Contains(result.Error.Error(), "max-time reached") {
+	if errors.Is(result.Error, agent.ErrMaxTimeReached) {
 		gologger.Info().Msgf("%s\n", result.Error)
 		return
 	}
