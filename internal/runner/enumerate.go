@@ -2,7 +2,9 @@ package runner
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -46,7 +48,7 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 		for result := range results {
 			switch result.Type {
 			case source.Error:
-				gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
+				r.reportSourceError(result)
 			case source.Url:
 				if result.Value == "" {
 					continue
@@ -128,6 +130,16 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 	}
 
 	return nil
+}
+
+// reportSourceError shows a failed source on stderr. -silent drops warnings
+// from the default logger, so the message is written directly in that case.
+func (r *Runner) reportSourceError(result source.Result) {
+	if r.options.Silent {
+		_, _ = fmt.Fprintf(os.Stderr, "Could not run source %s: %s\n", result.Source, result.Error)
+		return
+	}
+	gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
 }
 
 func (r *Runner) filterAndMatchUrl(url string) bool {
