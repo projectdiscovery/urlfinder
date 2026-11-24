@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/corpix/uarand"
@@ -96,7 +97,7 @@ func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")
 	}
-	if req.URL.Hostname() == via[0].URL.Hostname() {
+	if strings.EqualFold(req.URL.Hostname(), via[0].URL.Hostname()) {
 		return nil
 	}
 	kept := http.Header{}

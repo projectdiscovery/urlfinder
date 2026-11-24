@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,16 +19,25 @@ func TestRedirectKeepsKeyHeaderOnSameHost(t *testing.T) {
 	var server *httptest.Server
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/start" {
-			http.Redirect(w, r, server.URL+"/end", http.StatusFound)
+			to := server.URL + "/end"
+			if strings.HasPrefix(r.Host, "localhost") {
+				to = r.URL.Query().Get("to")
+			}
+			http.Redirect(w, r, to, http.StatusFound)
 			return
 		}
 		got = r.Header.Get("X-Api-Key")
 	}))
 	defer server.Close()
 
-	get(t, server.URL+"/start")
-	if got != "secret" {
-		t.Fatalf("key header on same-host redirect = %q, want it kept", got)
+	_, port, _ := net.SplitHostPort(server.Listener.Addr().String())
+	for _, target := range []string{server.URL, "http://localhost:" + port} {
+		got = ""
+		// the redirect goes to the same host spelled in upper case
+		get(t, target+"/start?to="+url.QueryEscape("http://LOCALHOST:"+port+"/end"))
+		if got != "secret" {
+			t.Fatalf("key header on same-host redirect from %s = %q, want it kept", target, got)
+		}
 	}
 }
 
