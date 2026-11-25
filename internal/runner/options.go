@@ -13,6 +13,7 @@ import (
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/urlfinder/pkg/agent"
 	"github.com/projectdiscovery/urlfinder/pkg/resolve"
+	src "github.com/projectdiscovery/urlfinder/pkg/source"
 	"github.com/projectdiscovery/urlfinder/pkg/utils/extensions"
 	fileutil "github.com/projectdiscovery/utils/file"
 	folderutil "github.com/projectdiscovery/utils/folder"
@@ -120,7 +121,7 @@ func ParseOptions() *Options {
 
 	flagSet.CreateGroup("output", "Output",
 		flagSet.StringVarP(&options.OutputFile, "output", "o", "", "file to write output to"),
-		flagSet.BoolVarP(&options.JSON, "jsonl", "j", false, "write output in JSONL(ines) format"),
+		flagSet.BoolVarP(&options.JSON, "jsonl", "j", false, "write output in JSON Lines format"),
 		flagSet.StringVarP(&options.OutputDirectory, "output-dir", "od", "", "directory to write output file"),
 		flagSet.BoolVarP(&options.CaptureSources, "collect-sources", "cs", false, "include all sources in the output (-json only)"),
 	)
@@ -224,13 +225,17 @@ func (options *Options) loadProvidersFrom(location string) {
 func listSources(options *Options) {
 	gologger.Info().Msgf("Current list of available sources. [%d]\n", len(agent.AllSources))
 	gologger.Info().Msgf("Sources marked with an * need key(s) or token(s) to work.\n")
+	gologger.Info().Msgf("Sources marked with a ~ optionally support key(s) for better results.\n")
 	gologger.Info().Msgf("You can modify %s to configure your keys/tokens.\n\n", options.ProviderConfig)
 
 	for _, source := range agent.AllSources {
 		message := "%s\n"
 		sourceName := source.Name()
-		if source.NeedsKey() {
+		switch source.KeyRequirement() {
+		case src.RequiredKey:
 			message = "%s *\n"
+		case src.OptionalKey:
+			message = "%s ~\n"
 		}
 		gologger.Silent().Msgf(message, sourceName)
 	}
