@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/corpix/uarand"
@@ -69,7 +71,8 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 	// waybackarchive stream large responses for minutes, and a client-wide timeout
 	// aborts them mid-body. The request context (-max-time) bounds the request overall.
 	client := &http.Client{
-		Transport: Transport,
+		Transport:     Transport,
+		CheckRedirect: checkRedirect,
 	}
 
 	session := &Session{Client: client}
@@ -82,6 +85,29 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 	session.Extractor = extractor
 
 	return session, err
+}
+
+// redirectSafeHeaders are the headers the session sets itself, none of them secret
+var redirectSafeHeaders = []string{"User-Agent", "Accept", "Accept-Language", "Connection", "Content-Type"}
+
+// checkRedirect drops caller headers on a hop to another host. Go strips only
+// Authorization and Cookie there, so custom key headers like urlscan's API-Key
+// would otherwise reach whatever host the response redirects to.
+func checkRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if strings.EqualFold(req.URL.Hostname(), via[0].URL.Hostname()) {
+		return nil
+	}
+	kept := http.Header{}
+	for _, key := range redirectSafeHeaders {
+		if values := req.Header.Values(key); len(values) > 0 {
+			kept[key] = values
+		}
+	}
+	req.Header = kept
+	return nil
 }
 
 // Get makes a GET request to a URL with extended parameters
