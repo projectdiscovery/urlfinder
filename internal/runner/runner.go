@@ -155,7 +155,7 @@ func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Rea
 			return err
 		}
 	}
-	return nil
+	return scanner.Err()
 }
 
 // ValidateScope validates scope for an AbsURL

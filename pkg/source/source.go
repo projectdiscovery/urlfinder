@@ -6,6 +6,16 @@ import (
 	"github.com/projectdiscovery/urlfinder/pkg/session"
 )
 
+// KeyRequirement is how much a source depends on API keys
+type KeyRequirement int
+
+const (
+	NoKey KeyRequirement = iota
+	// OptionalKey sources work without a key, and a key lifts their limits
+	OptionalKey
+	RequiredKey
+)
+
 // Source is an interface inherited by each passive source
 type Source interface {
 	// Run takes a query as argument and a session object
@@ -20,7 +30,11 @@ type Source interface {
 	// used as part of the default execution.
 	IsDefault() bool
 
-	// NeedsKey returns true if the source requires an API key
+	// KeyRequirement returns how much the source depends on API keys
+	KeyRequirement() KeyRequirement
+
+	// NeedsKey returns true if the source requires an API key.
+	// Deprecated: use KeyRequirement, which also covers optional keys.
 	NeedsKey() bool
 
 	AddApiKeys([]string)

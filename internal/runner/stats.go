@@ -2,16 +2,18 @@ package runner
 
 import (
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/urlfinder/pkg/source"
 )
 
-func printStatistics(stats map[string]source.Statistics) {
+// printStatistics writes to w directly instead of through gologger, so an explicit
+// -stats still prints under -silent, which only raises the logger level.
+func printStatistics(w io.Writer, stats map[string]source.Statistics) {
 
 	sources := slices.Sorted(maps.Keys(stats))
 
@@ -28,14 +30,14 @@ func printStatistics(stats map[string]source.Statistics) {
 	}
 
 	if len(lines) > 0 {
-		gologger.Print().Msgf("\n Source               Duration      Results     Errors\n%s\n", strings.Repeat("─", 56))
-		gologger.Print().Msg(strings.Join(lines, "\n"))
-		gologger.Print().Msg("\n")
+		_, _ = fmt.Fprintf(w, "\n Source               Duration      Results     Errors\n%s\n", strings.Repeat("─", 56))
+		_, _ = fmt.Fprintln(w, strings.Join(lines, "\n"))
+		_, _ = fmt.Fprintln(w)
 	}
 
 	if len(skipped) > 0 {
-		gologger.Print().Msg("\n The following sources were included but skipped...\n\n")
-		gologger.Print().Msg(strings.Join(skipped, "\n"))
-		gologger.Print().Msg("\n\n")
+		_, _ = fmt.Fprint(w, "\n The following sources were included but skipped...\n\n")
+		_, _ = fmt.Fprintln(w, strings.Join(skipped, "\n"))
+		_, _ = fmt.Fprintln(w)
 	}
 }

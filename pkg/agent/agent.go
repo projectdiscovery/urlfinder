@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"math"
@@ -17,6 +18,10 @@ import (
 	"github.com/projectdiscovery/urlfinder/pkg/source"
 	mapsutil "github.com/projectdiscovery/utils/maps"
 )
+
+// ErrMaxEnumTime is reported for each source still running when the maximum
+// enumeration time runs out, so its results may be incomplete.
+var ErrMaxEnumTime = errors.New("stopped at the maximum enumeration time")
 
 // Agent is a struct for running url enumeration
 // against a given host. It wraps subscraping package and provides
@@ -130,16 +135,19 @@ func (a *Agent) EnumerateUrlsWithCtx(ctx context.Context, query string, proxy st
 		}
 		defer sess.Close()
 
-		ctx, cancel := context.WithTimeout(ctx, maxEnumTime)
+		ctx, cancel := context.WithTimeoutCause(ctx, maxEnumTime, ErrMaxEnumTime)
 
 		wg := &sync.WaitGroup{}
 		// Run each source in parallel on the target url
 		for _, runner := range a.sources {
 			wg.Add(1)
-			go func(source source.Source) {
-				ctxWithValue := context.WithValue(ctx, session.CtxSourceArg, source.Name())
-				for resp := range source.Run(ctxWithValue, query, sess) {
+			go func(src source.Source) {
+				ctxWithValue := context.WithValue(ctx, session.CtxSourceArg, src.Name())
+				for resp := range src.Run(ctxWithValue, query, sess) {
 					results <- resp
+				}
+				if errors.Is(context.Cause(ctx), ErrMaxEnumTime) {
+					results <- source.Result{Source: src.Name(), Type: source.Error, Error: ErrMaxEnumTime}
 				}
 				wg.Done()
 			}(runner)

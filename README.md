@@ -112,6 +112,19 @@ OPTIMIZATION:
    -max-time int  max time in minutes for enumeration (default 10)
 ```
 
+## API Keys
+
+Sources marked `*` in `urlfinder -ls` need a key, and sources marked `~` work without one but return more with it. Add keys to the provider config file:
+
+```yaml
+urlscan:
+  - URLSCAN_API_KEY
+virustotal:
+  - VIRUSTOTAL_API_KEY
+alienvault:
+  - OTX_API_KEY
+```
+
 ## Examples
 
 ### Basic Usage

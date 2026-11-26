@@ -84,3 +84,51 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
+
+func TestRunSendsAPIKeyOnlyWhenConfigured(t *testing.T) {
+	tests := []struct {
+		name string
+		keys []string
+		want string
+	}{
+		{name: "without key", want: ""},
+		{name: "with key", keys: []string{"otx-key"}, want: "otx-key"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.WithValue(context.Background(), session.CtxSourceArg, "alienvault")
+			multiRateLimiter, err := ratelimit.NewMultiLimiter(ctx, &ratelimit.Options{
+				Key:         "alienvault",
+				IsUnlimited: true,
+				MaxCount:    math.MaxUint32,
+				Duration:    time.Millisecond,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer multiRateLimiter.Stop()
+
+			var got string
+			src := &Source{}
+			src.AddApiKeys(test.keys)
+			sess := &session.Session{
+				Client: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+					got = req.Header.Get("X-OTX-API-KEY")
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader(`{"url_list":[],"has_next":false}`)),
+						Header:     make(http.Header),
+					}, nil
+				})},
+				MultiRateLimiter: multiRateLimiter,
+			}
+
+			for range src.Run(ctx, "example.com", sess) {
+			}
+			if got != test.want {
+				t.Fatalf("X-OTX-API-KEY = %q, want %q", got, test.want)
+			}
+		})
+	}
+}

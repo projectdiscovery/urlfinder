@@ -7,6 +7,7 @@ import (
 
 	"github.com/projectdiscovery/gologger"
 	"github.com/projectdiscovery/urlfinder/pkg/agent"
+	src "github.com/projectdiscovery/urlfinder/pkg/source"
 	fileutil "github.com/projectdiscovery/utils/file"
 )
 
@@ -22,7 +23,7 @@ func createProviderConfigYAML(configFilePath string) error {
 
 	sourcesRequiringApiKeysMap := make(map[string][]string)
 	for _, source := range agent.AllSources {
-		if source.NeedsKey() {
+		if source.KeyRequirement() != src.NoKey {
 			sourceName := source.Name()
 			sourcesRequiringApiKeysMap[sourceName] = []string{}
 		}
@@ -43,7 +44,7 @@ func UnmarshalFrom(file string) error {
 	for _, source := range agent.AllSources {
 		sourceName := (source.Name())
 		apiKeys := sourceApiKeysMap[sourceName]
-		if source.NeedsKey() && apiKeys != nil && len(apiKeys) > 0 {
+		if source.KeyRequirement() != src.NoKey && len(apiKeys) > 0 {
 			gologger.Debug().Msgf("API key(s) found for %s.", sourceName)
 			source.AddApiKeys(apiKeys)
 		}
