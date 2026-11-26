@@ -2,8 +2,10 @@ package runner
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -42,11 +44,16 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 	uniqueMap := make(map[string]resolve.HostEntry)
 	// Create a map to track sources for each host
 	sourceMap := make(map[string]map[string]struct{})
+	var cutOffSources []string
 	// Process the results in a separate goroutine
 	go func() {
 		for result := range results {
 			switch result.Type {
 			case source.Error:
+				if errors.Is(result.Error, agent.ErrMaxEnumTime) {
+					cutOffSources = append(cutOffSources, result.Source)
+					continue
+				}
 				gologger.Warning().Msgf("Could not run source %s: %s\n", result.Source, result.Error)
 			case source.Url:
 				if result.Value == "" {
@@ -122,6 +129,11 @@ func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, 
 		}
 	}
 	gologger.Info().Msgf("Found %d urls for %s in %s\n", numberOfUrls, query, duration)
+	if len(cutOffSources) > 0 {
+		slices.Sort(cutOffSources)
+		// Info, not Warning: the default log level drops warnings unless -v is set
+		gologger.Info().Msgf("Results may be incomplete: %s did not finish within -max-time (%dm)\n", strings.Join(cutOffSources, ", "), r.options.MaxEnumerationTime)
+	}
 
 	if r.options.Statistics {
 		gologger.Info().Msgf("Printing source statistics for %s", query)
