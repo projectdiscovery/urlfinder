@@ -3,7 +3,6 @@ package session
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -47,9 +46,6 @@ func NewSession(query string, proxy string, multiRateLimiter *ratelimit.MultiLim
 	Transport := &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
 		DialContext: (&net.Dialer{
 			Timeout: time.Duration(timeout) * time.Second,
 		}).DialContext,
