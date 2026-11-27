@@ -114,6 +114,8 @@ func (r *Runner) EnumerateMultipleUrlsWithCtx(ctx context.Context, reader io.Rea
 		if errors.Is(err, ErrEmptyInput) {
 			continue
 		}
+		// also used to name the file under -output-dir
+		url = normalizeQuery(url)
 
 		var file *os.File
 		// If the user has specified an output file, use that output file instead
