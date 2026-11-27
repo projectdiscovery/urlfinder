@@ -32,6 +32,7 @@ func (r *Runner) EnumerateSingleQuery(query string, writers []io.Writer) error {
 
 // EnumerateSingleQueryWithCtx performs url enumeration against a single query
 func (r *Runner) EnumerateSingleQueryWithCtx(ctx context.Context, query string, writers []io.Writer) error {
+	query = normalizeQuery(query)
 	gologger.Info().Msgf("Enumerating urls for %s\n", query)
 
 	// Run the url enumeration
